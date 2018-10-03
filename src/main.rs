@@ -3,8 +3,7 @@ extern crate failure;
 use failure::{format_err, Error};
 
 use std::env;
-use std::net::{Shutdown, TcpStream, ToSocketAddrs};
-use std::time::Duration;
+use std::net::{Shutdown, TcpStream};
 
 fn main() -> Result<(), Error> {
     // create host:port string
@@ -19,13 +18,7 @@ fn main() -> Result<(), Error> {
             ));
         }
     };
-    // resolve the hostnameport to a socket addr
-    let socket_addr = hostnameport
-        .to_socket_addrs()?
-        .nth(0)
-        .ok_or(format_err!("[ping-client]: couldn't get IP address"))?;
-    // connect to the socket addr with a timeout
-    let stream = TcpStream::connect_timeout(&socket_addr, Duration::from_secs(3))?;
+    let stream = TcpStream::connect(&hostnameport)?;
     // get peer's address (IPv4 or IPv6)
     let ipaddr = stream.peer_addr()?;
     // Successfully connected

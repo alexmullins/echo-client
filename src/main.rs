@@ -1,29 +1,33 @@
+extern crate failure;
+
 use std::env;
 use std::net::{Shutdown, TcpStream, ToSocketAddrs};
 use std::time::Duration;
 
-fn main() {
-    // get (hostname or ip) and ([port] or 7)
+use failure::{format_err, Error};
+
+fn main() -> Result<(), Error> {
+    // create host:port string
     let hostnameport = match env::args().nth(1) {
         Some(h) => match env::args().nth(2) {
-            Some(p) => format!("{}:{}", h, p),
-            None => format!("{}:{}", h, 7),
+            Some(p) => format!("{}:{}", h, p), // "host:port"
+            None => format!("{}:{}", h, 7),    // "host:7"
         },
         None => {
-            println!("[ping-client]: must provide a hostname or IP address to connect to.");
-            return;
+            return Err(format_err!(
+                "[ping-client]: must provide a hostname or IP address to connect to."
+            ));
         }
     };
 
     // resolve the hostnameport to a socket addr
-    let socket_addr = match hostnameport.to_socket_addrs().unwrap().next() {
+    let socket_addr = match hostnameport.to_socket_addrs()?.next() {
         Some(sock) => sock,
         None => {
-            println!(
+            return Err(format_err!(
                 "[ping-client]: err: couldn't resolve hostname {}",
                 hostnameport
-            );
-            return;
+            ));
         }
     };
 
@@ -32,8 +36,7 @@ fn main() {
     let stream = match TcpStream::connect_timeout(&socket_addr, timeout) {
         Ok(s) => s,
         Err(err) => {
-            println!("[ping-client]: err: {}", err);
-            return;
+            return Err(format_err!("[ping-client]: err: {}", err));
         }
     };
 
@@ -44,8 +47,7 @@ fn main() {
     let ipaddr = match stream.peer_addr() {
         Ok(ip) => ip,
         Err(err) => {
-            println!("[ping-client]: err: {}", err);
-            return;
+            return Err(format_err!("[ping-client]: err: {}", err));
         }
     };
 
@@ -57,5 +59,5 @@ fn main() {
         .shutdown(Shutdown::Both)
         .expect("[ping-client]: couldn't close connection");
 
-    return;
+    return Ok(());
 }
